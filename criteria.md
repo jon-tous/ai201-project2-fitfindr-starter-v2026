@@ -54,11 +54,14 @@ Given a query that matches no listings, the agent stops before calling
      compares session["selected_item"] against what actually reached
      suggest_outfit is the shape you're after. -->
 
+Given 5 different queries that each match at least one listing, the `id` of
+`session["selected_item"]` (captured right after `search_listings` returns)
+equals the `id` of the `new_item` argument actually received by
+`suggest_outfit`, in 5 of 5 tries.
 
-
-**Why this target:**
-
-
+**Why this target:** This is state-passing through my own code, not a model
+call — if it's wrong, it's wrong the same way every time, so 5 of 5 is the
+honest bar.
 
 ---
 
@@ -75,11 +78,14 @@ Given a query that matches no listings, the agent stops before calling
      sentence? A card longer than a caption anyone would post? Any of those can
      be turned into a number. -->
 
+For 5 different items run through `create_fit_card`, the resulting caption
+contains the item's price as a dollar sign followed by that price's
+whole-number part (e.g. price `38.0` → the string matches `\$\s*38\b`), in at
+least 4 of 5 tries.
 
-
-**Why this target:**
-
-
+**Why this target:** 4 of 5, not 5 of 5 — this is model output, and I'm asking
+it to include a specific number inside freeform prose it's also trying to make
+read naturally. Same reasoning as criterion 1.
 
 ---
 
@@ -92,11 +98,15 @@ Given a query that matches no listings, the agent stops before calling
      search respects a price ceiling — anything, as long as it names a number
      or an observable outcome. -->
 
+For 5 different items' fit cards, no exact sentence (trimmed of whitespace and
+trailing punctuation) appears in more than one card — 0 shared sentences
+across all 10 pairs, in 5 of 5 tries.
 
-
-**Why this target:**
-
-
+**Why this target:** 5 of 5, and 0 shared sentences, because each card is
+built from a different item and outfit — if two different items produce an
+identical sentence, that's not variance, it's the model falling back to a
+template regardless of input, which is exactly the failure mode "specific
+about the vibe" is supposed to rule out.
 
 ---
 

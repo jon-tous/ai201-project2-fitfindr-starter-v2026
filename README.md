@@ -41,6 +41,13 @@
 
 <!-- Three or four sentences: what a user asks for, and what they get back. -->
 
+A user describes what they're thrifting for in plain language (e.g. "vintage
+graphic tee under $30, size M"). FitFindr searches a fixed catalog of
+secondhand listings for the best match, asks a model to suggest an outfit
+pairing it with the user's existing wardrobe (or general styling advice if the
+wardrobe is empty), and turns that into a short caption someone could actually
+post. If nothing matches or the query can't be parsed, it stops and says what
+to change instead of guessing.
 
 
 ---
@@ -59,24 +66,24 @@
 
 ### `search_listings`
 
-- **What it does:**
-- **Inputs:** <!-- name and type each: `max_price` (float), not "a price" -->
-- **Returns:**
-- **When it has nothing:**
+- **What it does:** Searches the fixed listings dataset for items whose keywords overlap a text query, optionally filtered to an exact size-token match and a max price, ranked by overlap score.
+- **Inputs:** `description` (str) — free-text keywords describing the item. `size` (str | None) — matched by exact token, case-insensitive, against the tokens in the listing's size string (e.g. "M" matches "S/M", but not "US 9"); skipped entirely if None. `max_price` (float | None) — inclusive price ceiling; skipped if None.
+- **Returns:** A list of listing dicts, best match first, capped at `config.SEARCH_RESULT_LIMIT`. Each dict has: `id`, `title`, `description`, `category`, `style_tags` (list), `size`, `condition`, `price` (float), `colors` (list), `brand` (str or None), `platform`.
+- **When it has nothing:** An empty list — never `None`, never an exception — when nothing scores above zero after price/size filtering.
 
 ### `suggest_outfit`
 
-- **What it does:**
-- **Inputs:**
-- **Returns:**
-- **When it has nothing:**
+- **What it does:** Calls the model to suggest one or two outfits pairing a candidate thrifted item with pieces from the user's wardrobe, or general styling advice if the wardrobe is empty.
+- **Inputs:** `new_item` (dict) — a listing dict as returned by `search_listings`. `wardrobe` (dict) — a wardrobe dict with an `items` key holding a list of item dicts (`id`, `name`, `category`, `colors`, `style_tags`, `notes`); the list may be empty.
+- **Returns:** A non-empty string with outfit suggestion(s), naming specific wardrobe pieces when the wardrobe is non-empty.
+- **When it has nothing:** With an empty wardrobe, returns general styling advice for the new item (still a non-empty string) rather than raising or returning `""`.
 
 ### `create_fit_card`
 
-- **What it does:**
-- **Inputs:**
-- **Returns:**
-- **When it has nothing:**
+- **What it does:** Calls the model to write a two-to-four sentence, social-caption-style write-up naming the item, its price, its platform, and the outfit's vibe.
+- **Inputs:** `outfit` (str) — the outfit suggestion string from `suggest_outfit`. `new_item` (dict) — the listing dict for the item.
+- **Returns:** A two-to-four sentence caption string.
+- **When it has nothing:** If `outfit` is empty or whitespace-only, returns a descriptive message string rather than raising or calling the model.
 
 ---
 
@@ -93,13 +100,13 @@
      The grader checks your code against what you claim here, so the file and
      function have to be real. -->
 
-**Branch rule:**
+**Branch rule:** If `search_listings` returns an empty list, put a message in `session["error"]` naming what to change (keywords/size/price) and stop — do not call `suggest_outfit`. Otherwise, take the first result as `session["selected_item"]` and continue to `suggest_outfit`, then `create_fit_card`. A second branch covers parsing: if the model-based parser doesn't return a usable `description`/`size`/`max_price`, put a message in `session["error"]` and stop before calling `search_listings`.
 
 **Where it lives:** `agent.py::run_agent`
 
-**How the query is parsed:** <!-- regex, string splitting, or asking the model — say which -->
+**How the query is parsed:** Asking the model, via `generate()` — the raw query is sent to the model with a request to return structured `description`/`size`/`max_price`.
 
-**What moves through the session:** <!-- which fields, in what order -->
+**What moves through the session:** `query` → `parsed` (`description`, `size`, `max_price`) → `search_results` → `selected_item` → `outfit_suggestion` → `fit_card`, with `error` set (and every later field left `None`) if the run stops early.
 
 ---
 

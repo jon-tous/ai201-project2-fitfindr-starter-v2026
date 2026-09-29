@@ -128,18 +128,20 @@ $ python app.py ask '...'
 
 ```
 $ python -c "from tools import search_listings; print(search_listings('graphic tee', max_price=30))"
-
+[{'id': 'lst_002', 'title': 'Y2K Baby Tee — Butterfly Print', 'price': 18.0, 'size': 'S/M', ...}, {'id': 'lst_006', 'title': 'Graphic Tee — 2003 Tour Bootleg Style', 'price': 24.0, 'size': 'L', ...}, {'id': 'lst_017', 'title': 'Mesh Long-Sleeve Top — Black', 'price': 15.0, 'size': 'S/M', ...}, {'id': 'lst_033', 'title': 'Vintage Band Tee — Faded Grey', 'price': 19.0, 'size': 'L', ...}, {'id': 'lst_011', 'title': 'Low-Rise Cargo Pants — Khaki', 'price': 27.0, 'size': 'W29', ...}, {'id': 'lst_015', 'title': 'Vintage Graphic Hoodie — Faded Black', 'price': 26.0, 'size': 'L', ...}]
 ```
 
 ```
-$ python -c "from tools import suggest_outfit; ..."
-
+$ python -c "from tools import suggest_outfit; from utils.data_loader import get_example_wardrobe, load_listings; print(suggest_outfit(load_listings()[0], get_example_wardrobe()))"
+Grab those vintage Levi's and pair them with your white ribbed tank top and a brown leather belt for an effortless, classic base. Throw on your black cropped zip hoodie for a cool, slightly edgy layer, and finish the whole look with your chunky white sneakers. It's the ultimate casual street-style vibe!
 ```
 
 ```
-$ python -c "from tools import create_fit_card; ..."
-
+$ python -c "from tools import create_fit_card; from utils.data_loader import load_listings; print(create_fit_card('jeans and white sneakers', load_listings()[0]))"
+Channeling total off-duty model energy with these vintage Levi's 501s! Pair them with your freshest white sneakers for that effortlessly cool weekend stroll. Snag this medium wash dream on depop right now for just $38.00 before someone else beats you to it!
 ```
+
+*(`suggest_outfit` and `create_fit_card` call the model through `generate()`, which caches identical prompts by default — see config.py's `CACHE_ENABLED`. Re-running these exact commands will replay the same cached text; running with the cache off, or on different items, produces different wording each time, which is what the fit-card criteria in criteria.md actually test.)*
 
 ---
 

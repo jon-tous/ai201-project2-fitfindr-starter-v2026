@@ -160,15 +160,15 @@ Channeling total off-duty model energy with these vintage Levi's 501s! Pair them
 
 **Moment 1**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for:* Help deciding what "matching size" should mean in `search_listings`, since the docstring warned a plain substring match breaks (`"s" in "us 9"` is `True`, `"l" in "xl"` is `True`).
+- *What came back:* Three options — exact token match, normalize-then-match, or skip size filtering for now — with the tradeoffs of each.
+- *What I changed:* Picked exact token match, case-insensitive, and wrote that rule into the Tool Inventory before any filtering code existed. `_tokenize()`/`_size_matches()` in `tools.py` implement exactly that rule.
 
 **Moment 2**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for:* I ran `create_fit_card` three times on the same item, per the milestone's instructions, and got word-for-word identical captions back. I asked why.
+- *What came back:* Claude pointed to `config.CACHE_ENABLED` rather than assuming the tool was broken — `generate()` replays a cached answer for an identical prompt by default — then reran the same test with caching bypassed to confirm the model's actual output does vary (three different captions at `TEMPERATURE = 0.9`).
+- *What I changed:* Nothing in the code — I'd assumed a repeat prompt implied a broken tool, so this changed my read of the output rather than the tool itself.
 
 <!-- ═══════════════════════ UNIT 4 — THE TEST ═══════════════════════
 

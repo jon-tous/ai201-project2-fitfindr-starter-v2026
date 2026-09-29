@@ -120,8 +120,12 @@ to change instead of guessing.
 **One full query**
 
 ```
-$ python app.py ask '...'
+$ python app.py ask 'vintage graphic tee under $30'
+  Found:    Y2K Baby Tee — Butterfly Print — $18.0 on depop
 
+  Outfit:   Pair that adorable butterfly baby tee with your baggy dark-wash straight-leg jeans for the ultimate 2000s contrast between fitted and loose! Throw on your chunky white sneakers to keep it comfy, and layer the vintage black denim jacket on top when you need an extra layer.
+
+  Fit card: Channel your inner 2000s pop princess with this dreamy butterfly baby tee! Score this ultimate throwback energy for just $18.00 right now on Depop. Grab it before it's gone and go live your best nostalgic life!
 ```
 
 **The three tools, tested one at a time**

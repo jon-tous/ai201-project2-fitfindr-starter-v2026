@@ -13,10 +13,54 @@ Build and test your three tools in `tools.py` first. Then come here.
     python agent.py          runs both example paths below
 """
 
+import json
+import re
+
 import config
 import trace
 from tools import search_listings, suggest_outfit, create_fit_card
-from generate import ModelUnavailable
+from generate import generate, ModelUnavailable
+
+
+def _parse_query(query: str) -> dict | None:
+    """
+    Ask the model to pull description/size/max_price out of a plain-language
+    query. Returns None if the response can't be turned into that shape —
+    that's the signal run_agent stops on.
+    """
+    system = (
+        "Extract search parameters from a thrift-shopping query. Respond "
+        "with ONLY a JSON object with exactly these keys: \"description\" "
+        "(string — keywords describing the item), \"size\" (string or "
+        "null), \"max_price\" (number or null). No other text, no markdown."
+    )
+    response = generate(query, system=system, temperature=0.0)
+
+    text = re.sub(r"^```(?:json)?|```$", "", response.strip(), flags=re.MULTILINE).strip()
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError:
+        return None
+
+    if not isinstance(data, dict):
+        return None
+
+    description = data.get("description")
+    if not isinstance(description, str) or not description.strip():
+        return None
+
+    size = data.get("size")
+    if size is not None and not isinstance(size, str):
+        return None
+
+    max_price = data.get("max_price")
+    if max_price is not None:
+        try:
+            max_price = float(max_price)
+        except (TypeError, ValueError):
+            return None
+
+    return {"description": description, "size": size, "max_price": max_price}
 
 
 # ── session state ─────────────────────────────────────────────────────────────
@@ -106,9 +150,42 @@ def run_agent(query: str, wardrobe: dict) -> dict:
         than a stack trace. The import is already at the top of this file.
     """
     session = new_session(query, wardrobe)
+    count = 0
 
-    # TODO: delete these two lines and build the loop.
-    session["error"] = "The planning loop isn't built yet — see the TODO in agent.py."
+    count += 1
+    trace.check_iterations(count)
+    parsed = _parse_query(query)
+    if parsed is None:
+        session["error"] = (
+            "Couldn't understand that query. Try rephrasing with a plain "
+            "description, and optionally a size or a price like 'under $30'."
+        )
+        return session
+    session["parsed"] = parsed
+
+    count += 1
+    trace.check_iterations(count)
+    results = search_listings(
+        parsed["description"], size=parsed["size"], max_price=parsed["max_price"]
+    )
+    session["search_results"] = results
+    if not results:
+        session["error"] = (
+            "No listings matched that search. Try a broader description, a "
+            "higher max price, or a different size."
+        )
+        return session
+
+    session["selected_item"] = results[0]
+
+    count += 1
+    trace.check_iterations(count)
+    session["outfit_suggestion"] = suggest_outfit(session["selected_item"], wardrobe)
+
+    count += 1
+    trace.check_iterations(count)
+    session["fit_card"] = create_fit_card(session["outfit_suggestion"], session["selected_item"])
+
     return session
 
 

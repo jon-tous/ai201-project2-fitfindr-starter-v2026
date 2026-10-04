@@ -170,6 +170,18 @@ Channeling total off-duty model energy with these vintage Levi's 501s! Pair them
 - *What came back:* Claude pointed to `config.CACHE_ENABLED` rather than assuming the tool was broken — `generate()` replays a cached answer for an identical prompt by default — then reran the same test with caching bypassed to confirm the model's actual output does vary (three different captions at `TEMPERATURE = 0.9`).
 - *What I changed:* Nothing in the code — I'd assumed a repeat prompt implied a broken tool, so this changed my read of the output rather than the tool itself.
 
+**Moment 3 (unit 4)**
+
+- *What I asked for:* I triggered the model-unavailable failure by corrupting one character of `GEMINI_API_KEY`, expecting my new `try/except ModelUnavailable` blocks in `run_agent()` to catch it cleanly. Instead I got an uncaught `ModelUnavailable` exception and exit code 1 from `app.py`'s top-level handler.
+- *What came back:* Claude traced it to the actual first call site — `_parse_query()` also calls `generate()` (to extract description/size/max_price), and I'd only wrapped the three *tool* calls (`suggest_outfit`, `create_fit_card`), not the parse step.
+- *What I changed:* Added a `try/except ModelUnavailable` around the `_parse_query()` call too, in `agent.py::run_agent`, so all three real model-calling steps fail the same way — a message in `session["error"]`, not an uncaught exception.
+
+**Moment 4 (unit 4)**
+
+- *What I asked for:* How to test criterion 3 — that the `id` reaching `suggest_outfit` really is the one `search_listings` picked — when `run_eval.py`'s generic runner only records the final session, never what a tool was actually called with.
+- *What came back:* Claude suggested monkeypatching `suggest_outfit` itself (via the name bound in `agent.py`, not `tools.py` — those are different references once `agent.py` does `from tools import suggest_outfit`) to capture its real argument, and stubbing `generate()` so the check doesn't spend real API calls proving something that has nothing to do with model output.
+- *What I changed:* Wrote `check_state.py` as a separate, narrowly-scoped script using exactly that approach, instead of trying to force this criterion through `run_eval.py`'s session-only mechanism.
+
 <!-- ═══════════════════════ UNIT 4 — THE TEST ═══════════════════════
 
      Don't fill these in during unit 3.

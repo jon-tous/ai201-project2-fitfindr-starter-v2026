@@ -155,14 +155,23 @@ def run_agent(query: str, wardrobe: dict) -> dict:
 
     count += 1
     trace.check_iterations(count)
-    parsed = _parse_query(query)
+    try:
+        parsed = _parse_query(query)
+    except ModelUnavailable as exc:
+        session["error"] = f"Couldn't parse that query: {exc}"
+        trace.step("parse_query", inputs={"query": query}, returned=None,
+                   note="branch: model unavailable, stopping")
+        return session
     if parsed is None:
         session["error"] = (
             "Couldn't understand that query. Try rephrasing with a plain "
             "description, and optionally a size or a price like 'under $30'."
         )
+        trace.step("parse_query", inputs={"query": query}, returned=None,
+                   note="branch: couldn't parse, stopping")
         return session
     session["parsed"] = parsed
+    trace.step("parse_query", inputs={"query": query}, returned=parsed)
 
     count += 1
     trace.check_iterations(count)
@@ -172,6 +181,13 @@ def run_agent(query: str, wardrobe: dict) -> dict:
         "max_price": parsed["max_price"],
     })
     session["search_results"] = results
+    trace.step(
+        "search_listings (via MCP)",
+        inputs={"description": parsed["description"], "size": parsed["size"],
+                "max_price": parsed["max_price"]},
+        returned=results,
+        note="branch: empty, stopping" if not results else "",
+    )
     if not results:
         session["error"] = (
             "No listings matched that search. Try a broader description, a "
@@ -183,11 +199,29 @@ def run_agent(query: str, wardrobe: dict) -> dict:
 
     count += 1
     trace.check_iterations(count)
-    session["outfit_suggestion"] = suggest_outfit(session["selected_item"], wardrobe)
+    try:
+        session["outfit_suggestion"] = suggest_outfit(session["selected_item"], wardrobe)
+    except ModelUnavailable as exc:
+        session["error"] = f"Couldn't generate an outfit suggestion: {exc}"
+        trace.step("suggest_outfit", inputs={"new_item": session["selected_item"]},
+                   returned=None, note="branch: model unavailable, stopping")
+        return session
+    trace.step("suggest_outfit", inputs={"new_item": session["selected_item"]},
+               returned=session["outfit_suggestion"])
 
     count += 1
     trace.check_iterations(count)
-    session["fit_card"] = create_fit_card(session["outfit_suggestion"], session["selected_item"])
+    try:
+        session["fit_card"] = create_fit_card(session["outfit_suggestion"], session["selected_item"])
+    except ModelUnavailable as exc:
+        session["error"] = f"Couldn't generate a fit card: {exc}"
+        trace.step("create_fit_card",
+                   inputs={"outfit": session["outfit_suggestion"], "new_item": session["selected_item"]},
+                   returned=None, note="branch: model unavailable, stopping")
+        return session
+    trace.step("create_fit_card",
+               inputs={"outfit": session["outfit_suggestion"], "new_item": session["selected_item"]},
+               returned=session["fit_card"])
 
     return session
 

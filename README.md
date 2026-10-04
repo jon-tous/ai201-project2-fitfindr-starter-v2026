@@ -252,20 +252,37 @@ that produced it:
 **Happy path**
 
 ```
-
+[1] parse_query
+      in:  dict with keys: query
+      out: dict with keys: description, size, max_price
+[2] search_listings (via MCP)
+      in:  dict with keys: description, size, max_price
+      out: 1 items: Platform Sneakers — White Chunky Sole
+[3] suggest_outfit
+      in:  dict with keys: new_item
+      out: Oh, those platform sneakers are going to be your new absolute faves! Pair them with your baggy dark wash jeans…
+[4] create_fit_card
+      in:  dict with keys: outfit, new_item
+      out: Channel your inner 90s supermodel with these chunky white platform sneakers, just scored on Poshmark for $48.0…
 ```
 
 **Empty search**
 
 ```
-
+[1] parse_query
+      in:  dict with keys: query
+      out: dict with keys: description, size, max_price
+[2] search_listings (via MCP)
+      in:  dict with keys: description, size, max_price
+      out: [] (empty)
+      →    branch: empty, stopping
 ```
 
-**On the MCP move:** <!-- what changed in your code, and whether anything
-behaved differently afterwards. If the rewire didn't work, say exactly where it
-broke — the error text and the last thing that worked. That earns the point in
-full. -->
-
+**On the MCP move:** `run_agent()` now calls `call_tool("search_listings", {...})`
+from `mcp_client.py` instead of calling `search_listings()` directly. Nothing
+else in the loop changed. The return value was identical before and after the
+move — same list of dicts, `price` still a plain float — so the rewire didn't
+surface anything that had been hiding in the direct call.
 
 
 ---

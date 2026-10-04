@@ -35,18 +35,50 @@ SCENARIOS = [
         "wardrobe": "empty",
         "criterion": None,
     },
-    # TODO: add what your criteria 3, 4 and 5 need.
+    # Criterion 3 (state): id(session["selected_item"]) must equal the id of
+    # the `new_item` actually received by suggest_outfit. That requires
+    # instrumenting the call itself — run_eval.py's generic run_once only
+    # records the session, not what a tool was literally called with — so
+    # this one is checked by a separate script, check_state.py, which
+    # monkeypatches suggest_outfit to capture its real argument. It reuses the
+    # 5 queries below rather than adding its own scenario entries here.
     #
-    # Set "criterion" to the number in criteria.md that the scenario tests.
-    # "criterion": None means a diagnostic run — useful to have, but it isn't
-    # one of your five, and run_eval.py marks it as such in the table.
-    #
-    # For a state criterion, any normal query works — what you're checking is
-    # what ends up in the session, not what the user typed.
-    #
-    # For a fit-card criterion, you probably want the SAME query listed more
-    # than once, or several different items, depending on what your criterion
-    # actually says.
+    # Criterion 4 (fit card mentions price) and criterion 5 (fit cards don't
+    # repeat sentences) both need several DIFFERENT items, not the same query
+    # retried — so each of these 5 is a different item, run once each rather
+    # than five times. Criterion 5 is scored by comparing the 5 resulting fit
+    # cards against each other after the run, so it shares this same data
+    # instead of needing its own scenarios.
+    {
+        "name": "fit card item 1 — graphic tee",
+        "query": "vintage graphic tee under $30",
+        "wardrobe": "example",
+        "criterion": 4,
+    },
+    {
+        "name": "fit card item 2 — track jacket",
+        "query": "90s track jacket in size M",
+        "wardrobe": "example",
+        "criterion": 4,
+    },
+    {
+        "name": "fit card item 3 — slip dress",
+        "query": "silk slip dress in midi length under $40",
+        "wardrobe": "example",
+        "criterion": 4,
+    },
+    {
+        "name": "fit card item 4 — platform sneakers",
+        "query": "platform sneakers size 8",
+        "wardrobe": "example",
+        "criterion": 4,
+    },
+    {
+        "name": "fit card item 5 — denim jacket",
+        "query": "denim jacket under $50",
+        "wardrobe": "example",
+        "criterion": 4,
+    },
 ]
 
 WARDROBES = ("example", "empty")

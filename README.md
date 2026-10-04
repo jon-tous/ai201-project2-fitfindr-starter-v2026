@@ -190,18 +190,81 @@ Channeling total off-duty model energy with these vintage Levi's 501s! Pair them
 
 | Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
 |---|---|---|---|---|---|---|---|
-| 1.  |  |  |  |  |  |  |  |
-| 2.  |  |  |  |  |  |  |  |
-| 3.  |  |  |  |  |  |  |  |
-| 4.  |  |  |  |  |  |  |  |
-| 5.  |  |  |  |  |  |  |  |
+| 1. Matching query completes all three tools, returns a fit card | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 2. Impossible query stops before `suggest_outfit` | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 3. `id` in `session["selected_item"]` matches `id` received by `suggest_outfit` | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 4. Fit card mentions the item's price, across 5 different items | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 5. No exact sentence repeats across 5 different items' fit cards | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+
+For criteria 1, 2 and 4, each "Try" is one of the 5 repeated runs from
+`python run_eval.py --label before` (scenarios in `scenarios.py`, full output
+in `results/run_2026-10-03_2328_before.md`). Criterion 4's 5 tries are 5
+*different items* (not the same item retried), since the criterion is about
+item diversity, not retry reliability — see the note under the table in
+`scenarios.py`. Criterion 3 doesn't fit `run_eval.py`'s model (it needs to
+inspect what a tool was actually called with, not just the final session), so
+it's checked by a separate script, `check_state.py`, which monkeypatches
+`suggest_outfit` to capture its real argument; its 5 tries are the same 5
+items used for criterion 4. Criterion 5 is scored by comparing all 5 of those
+items' fit cards against each other after the fact (10 pairs, 0 shared
+sentences allowed) — each "Try" is PASS if that item's sentences don't
+collide with any other item's.
 
 **Real output from one try**, pasted as text, naming the file and function
 that produced it:
 
-```
+**Criterion 1 — `run_eval.py::run_once` → `agent.py::run_agent`, try 1 of "matching query completes":**
 
 ```
+- stopped early: no
+- selected_item: Y2K Baby Tee — Butterfly Print ($18.0, depop)
+- search_results: 10
+
+Fit card:
+
+Channel your inner 2000s pop princess with this adorable butterfly baby tee! Score this ultimate off-duty model look for just $18.00 over on depop before it flies away. Get ready to live your best nostalgic life!
+```
+
+**Criterion 2 — `run_eval.py::run_once` → `agent.py::run_agent`, try 1 of "impossible query stops early":**
+
+```
+[1] parse_query
+      in:  dict with keys: query
+      out: dict with keys: description, size, max_price
+[2] search_listings (via MCP)
+      in:  dict with keys: description, size, max_price
+      out: [] (empty)
+      →    branch: empty, stopping
+
+- stopped early: yes — No listings matched that search. Try a broader description, a higher max price, or a different size.
+- selected_item: (none)
+- search_results: 0
+```
+
+**Criterion 3 — `check_state.py::main`, try 1 of 5 ("vintage graphic tee under $30"):**
+
+```
+try 1: query='vintage graphic tee under $30'
+  session['selected_item']['id']        = 'lst_002'
+  id actually received by suggest_outfit = 'lst_002'
+  PASS
+...
+5 of 5 passed
+```
+
+**Criterion 4 — `run_eval.py::run_once` → `tools.py::create_fit_card`, item 1 of 5 ("fit card item 1 — graphic tee", $18.0):**
+
+```
+Channel your inner 2000s pop star with this dreamy butterfly baby tee! Score this ultimate throwback for just $18.00 over on depop before someone else snags it. Grab your favorite baggy jeans and chunky sneakers, and you're ready to serve major nostalgic looks all weekend long!
+```
+`$18.00` matches the target item's price (18.0).
+
+**Criterion 5 — the same 5 "fit card item N" runs, compared against each other:**
+
+Checked all 5 captions (item 1 above, plus track jacket/$45, slip dress/$30,
+platform sneakers/$48, denim jacket/$42) sentence-by-sentence. All 5 open with
+a near-identical template ("Channel your inner ... with this ...") but no two
+cards share one *exact* sentence — 0 overlaps across all 10 pairs.
 
 ---
 
@@ -225,13 +288,49 @@ that produced it:
 
 | # | Criterion | Target | Verdict | How I decided |
 |---|---|---|---|---|
-| 1 |  |  |  |  |
-| 2 |  |  |  |  |
-| 3 |  |  |  |  |
-| 4 |  |  |  |  |
-| 5 |  |  |  |  |
+| 1 | Matching query completes all three tools, returns a fit card | 4 of 5 | MET (5/5) | All 5 tries of `vintage graphic tee under $30` completed parse → search → `suggest_outfit` → `create_fit_card` with a non-empty fit card and `stopped early: no` — read straight off `results/run_2026-10-03_2328_before.md`. |
+| 2 | Impossible query stops before `suggest_outfit` | 5 of 5 | MET (5/5) | All 5 tries of `designer ballgown size XXS under $5` show `search_results: 0`, `session["error"]` set, and the trace ending at step 2 (`search_listings`) — `suggest_outfit` never appears. |
+| 3 | `id` of `selected_item` equals `id` received by `suggest_outfit` | 5 of 5 | MET (5/5) | `check_state.py` monkeypatched `suggest_outfit` to record the real `id` it was called with, across 5 different queries; all 5 matched `session["selected_item"]["id"]` exactly. |
+| 4 | Fit card mentions the item's price | 4 of 5 | MET (5/5) | Checked the price regex against all 25 captures in the run (5 items × 5 tries each), not just one try per item — 25 of 25 passed. |
+| 5 | No shared sentence across items' fit cards | 5 of 5 | MET (5/5) | Compared every sentence of every fit card against every *other* item's fit cards — 250 cross-item pairs (5 items × 5 tries each), 0 shared sentences. |
 
 **Diagnoses**
+
+No misses this round — every criterion held, and criteria 4 and 5 held even
+under more data than the target required (25 fit cards checked instead of 5,
+250 cross-item pairs instead of 10). That's a good sign for
+`create_fit_card`'s prompt, but it also means I didn't get to practice
+diagnosing a real miss. So rather than stop at "all green," I did the
+milestone's suggested exercise anyway — arguing the opposite verdict as hard
+as I could against my own results:
+
+1. **Criterion 2 is close to untestable as written.** `search_listings` has
+   no randomness — same query, same fixed dataset, same answer every time —
+   and `_parse_query` runs at `temperature=0.0`, which is close to
+   deterministic too. Running the *same* impossible query 5 times mostly
+   re-confirms one deterministic computation rather than sampling 5
+   independent chances to fail. The target (5 of 5) isn't wrong, but the test
+   I built under-exercises it. **What I'd tighten:** use 5 *different*
+   impossible queries (different missing keywords, sizes, price ceilings)
+   instead of one query 5 times, so a 5/5 verdict means something about
+   reliability across inputs, not just repeatability of one input.
+
+2. **Criterion 1's test didn't match its own stated reasoning.** The "why" I
+   wrote in `criteria.md` says 4 of 5 because "my search is a plain keyword
+   match and some phrasings will miss" — but the scenario I actually ran is
+   one query, run 5 times, which tests parse-step consistency (also near
+   deterministic at `temperature=0.0`), not search robustness across
+   different real phrasings, which is the failure mode the target was
+   written for. **What I'd tighten:** swap in 5 different matching queries,
+   phrased the way a real user would rather than keyword-for-keyword matches
+   to the data, so the test actually probes what the target accounts for.
+
+Neither of these is "the criterion couldn't be measured" — both were
+measured, and both passed — so this isn't the kind of revision `criteria.md`
+gives credit for; it's a weaker finding about my *test*, not the criterion.
+I'm leaving criteria 1 and 2's numbers as written rather than quietly
+tightening them after the fact. If I rerun Milestone 3 with varied queries,
+this is exactly what changes first in `scenarios.py`.
 
 
 

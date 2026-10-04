@@ -393,24 +393,58 @@ surface anything that had been hiding in the direct call.
 
      `python run_eval.py --label after` -->
 
-**What I changed:**
+**What I changed:** In `scenarios.py`, replaced criterion 1's single scenario
+(one query, `vintage graphic tee under $30`, retried 5 times) with 5 scenarios
+using different, deliberately colloquial queries that don't echo any
+listing's own vocabulary: *"something cozy and oversized for fall,"* *"edgy
+grunge band shirt,"* *"comfy basics in neutral earth tones,"* *"cute boho top
+for summer,"* and *"a leather jacket that feels expensive."* (The original
+query practically quoted `lst_002`'s own `style_tags` — `vintage`, `graphic
+tee` — which isn't a fair test of keyword-overlap search.) No code in
+`agent.py` or `tools.py` changed.
 
-**Which failure it was meant to fix:**
+**Which failure it was meant to fix:** Not a code bug — Milestone 4's
+diagnosis found criterion 1's *test* didn't match its own stated reasoning.
+`criteria.md` justifies the 4-of-5 target with "my search is a plain keyword
+match and some phrasings will miss," but the Milestone 3 test ran one query 5
+times, which mostly measures `_parse_query`'s consistency at
+`temperature=0.0` (already near-deterministic) rather than whether
+`search_listings`' plain keyword-overlap scoring actually tolerates varied,
+real phrasing. This change targets that gap directly.
 
 ### Run Log — After
 
 | Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
 |---|---|---|---|---|---|---|---|
-| 1.  |  |  |  |  |  |  |  |
-| 2.  |  |  |  |  |  |  |  |
-| 3.  |  |  |  |  |  |  |  |
-| 4.  |  |  |  |  |  |  |  |
-| 5.  |  |  |  |  |  |  |  |
+| 1. Matching query completes all three tools, returns a fit card (5 *different* colloquial queries) | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 2. Impossible query stops before `suggest_outfit` *(unchanged by this round — carried forward)* | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 3. `id` of `selected_item` equals `id` received by `suggest_outfit` *(unchanged by this round — carried forward)* | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 4. Fit card mentions the item's price (same 5 items, freshly regenerated) | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 5. No shared sentence across items' fit cards (same 5 items, freshly regenerated) | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
 
-**Did it help, and how do I know:**
+Full output: `results/run_2026-10-03_2355_after.md`
+(`python run_eval.py --label after --tries 1` — 1 try per scenario, because
+criteria 1 and 4 are about diversity across different queries/items, not
+retrying one input; see the comment above `SCENARIOS` in `scenarios.py`).
+Criteria 2 and 3 weren't touched by this change — nothing in `search_listings`,
+the branch, or `suggest_outfit`'s wiring was edited — so I carried their
+Milestone 3 results forward rather than re-spend model calls reconfirming
+code that didn't move; the `after` run still includes one fresh try of
+criterion 2's scenario as a spot-check, and it passed too.
 
-<!-- If it made things worse, say that. Honestly reported, that earns full
-     credit and is more interesting than one that worked. -->
+**Did it help, and how do I know:** Honestly, no — not in the sense of
+catching and fixing a hidden failure. Criterion 1 still comes back 5/5 under
+a genuinely harder test: 5 colloquial phrasings that don't borrow the
+dataset's own vocabulary, instead of one query repeated. The number didn't
+change. What changed is what the number *means*: before, 5/5 only showed that
+`_parse_query` is consistent on one input; now it shows `search_listings`'
+plain keyword-overlap scoring tolerates real phrasing variety, which is the
+actual claim criterion 1's target was written to back up. I'd call this a
+neutral result honestly reported, not an improvement to the agent — I went
+looking for a hidden search-robustness problem my diagnosis predicted might
+exist, and on this dataset, with these 5 phrasings, it doesn't. That's useful
+to know, but it's a finding about test validity, not a fix to `agent.py` or
+`tools.py`.
 
 
 
@@ -418,9 +452,19 @@ surface anything that had been hiding in the direct call.
 
 ## What's Still Broken
 
-<!-- For each criterion still missed: what you'd do, and why you stopped where
-     you did. "I ran out of time" is fine if it's true. Pretending nothing is
-     left is not. -->
+Nothing is failing — all 5 criteria are MET in both the before and after
+runs. What's still open is the test-design gap Milestone 4 found in
+**criterion 2**, which I deliberately did *not* touch this round (one change
+per milestone, and I picked criterion 1). Criterion 2's target — "impossible
+query stops before `suggest_outfit`, 5 of 5" — is still tested with a single
+query (`designer ballgown size XXS under $5`) retried 5 times, and
+`search_listings` has no randomness, so that 5/5 is still closer to
+confirming one deterministic computation than sampling 5 independent chances
+to fail. The fix would be the same shape as criterion 1's: swap in 5
+different impossible queries (missing on different keywords, sizes, and
+price ceilings) instead of one query repeated. I stopped here because
+Milestone 5 asks for one change, measured properly, not two at once — this is
+the next one, not a hidden failure I'm ignoring.
 
 
 

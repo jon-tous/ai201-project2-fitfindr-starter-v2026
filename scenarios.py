@@ -14,10 +14,42 @@ own criteria need — these are a starting point, not a fixed set.
 """
 
 SCENARIOS = [
+    # Criterion 1 — Milestone 5 change. Originally this was one scenario
+    # ("vintage graphic tee under $30") retried 5 times. The Milestone 4
+    # diagnosis found that didn't test what the criterion's own "why" claims:
+    # "some phrasings will miss" is about phrasing variety, but retrying one
+    # query 5 times only measures parse-step consistency at temperature=0.0,
+    # which is already near-deterministic. These 5 are different, more
+    # colloquially-phrased queries instead — each run once, the same way
+    # criterion 4's item scenarios are below — so a MET verdict here actually
+    # says something about search robustness across phrasing.
     {
-        # A query the data can match. Criterion 1.
-        "name": "matching query completes",
-        "query": "vintage graphic tee under $30",
+        "name": "matching query 1 — cozy oversized knitwear",
+        "query": "something cozy and oversized for fall",
+        "wardrobe": "example",
+        "criterion": 1,
+    },
+    {
+        "name": "matching query 2 — grunge band shirt",
+        "query": "edgy grunge band shirt",
+        "wardrobe": "example",
+        "criterion": 1,
+    },
+    {
+        "name": "matching query 3 — neutral basics",
+        "query": "comfy basics in neutral earth tones",
+        "wardrobe": "example",
+        "criterion": 1,
+    },
+    {
+        "name": "matching query 4 — boho summer top",
+        "query": "cute boho top for summer",
+        "wardrobe": "example",
+        "criterion": 1,
+    },
+    {
+        "name": "matching query 5 — nice leather jacket",
+        "query": "a leather jacket that feels expensive",
         "wardrobe": "example",
         "criterion": 1,
     },
